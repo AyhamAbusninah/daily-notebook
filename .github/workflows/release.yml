@@ -36,6 +36,7 @@ jobs:
             name: windows-x64
             icon: "--icon data/icon.ico"
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -47,13 +48,15 @@ jobs:
       - run: pip install PySide6-Essentials pyinstaller
       - name: Build
         shell: bash
-        run: pyinstaller --noconfirm --clean --windowed --name DailyNotebook ${{ matrix.icon }} packaging/run.py
+        run: pyinstaller --noconfirm --clean --windowed --name DailyNotebook --paths . ${{ matrix.icon }} packaging/run.py
       - name: Smoke test (Linux)
         if: runner.os == 'Linux'
         run: QT_QPA_PLATFORM=offscreen ./dist/DailyNotebook/DailyNotebook --selftest
+        timeout-minutes: 3
       - name: Smoke test (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        timeout-minutes: 3
         run: |
           $p = Start-Process -FilePath "dist\DailyNotebook\DailyNotebook.exe" -ArgumentList "--selftest" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "selftest failed with exit code $($p.ExitCode)" }
