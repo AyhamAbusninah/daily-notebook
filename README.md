@@ -1,20 +1,33 @@
 # Daily Notebook
 
-A tiny desktop notebook for Linux: **one page per day**, free writing, and any line can become a **checkbox task**. Old pages stay available, and unfinished tasks carry over to the next day.
+A small desktop notebook for **Linux and Windows**: one page per day, free writing, and any line can be a checkbox task. Old pages stay available, and unfinished tasks carry over to the next day.
 
-Built with Python + GTK4. One file (`notebook.py`), no dependencies beyond GTK4.
+Built with Python and Qt (PySide6). Right-to-left text (Arabic, Hebrew) works: those lines are right-aligned and the checkbox sits on the right.
 
-## Features
+## Download and run
 
-- One page per day. Flip through days with the arrows, or open the day list to see every past page with a preview.
-- Write normally. A line is only a task when you make it one (`Ctrl+T`), so notes and tasks live on the same page.
-- Real checkboxes. Ticking a task strikes it through; the header shows `N open, M done`.
-- Unfinished tasks from your last page are copied to today's page automatically.
-- Notes are plain text files in `~/journal/`, so you can `grep` them, back them up, or put them in git.
+Go to the **[Releases page](https://github.com/AyhamAbusninah/daily-notebook/releases/latest)** and download the file for your system.
 
-## Install
+### Windows
 
-You need Python 3 and GTK4 for Python. On **Fedora Workstation** they are already installed.
+1. Download `DailyNotebook-windows-x64.zip` and unzip it.
+2. Double-click `DailyNotebook.exe` inside the folder.
+
+The app is not code-signed, so Windows SmartScreen may warn you the first time. Click **More info**, then **Run anyway**.
+
+### Linux
+
+1. Download `DailyNotebook-linux-x86_64.tar.gz`.
+2. Install it:
+   ```bash
+   mkdir daily-notebook && tar -xzf DailyNotebook-linux-x86_64.tar.gz -C daily-notebook
+   cd daily-notebook && ./install.sh
+   ```
+3. Open **Daily Notebook** from your app launcher (press `Super` and type "notebook").
+
+No sudo is needed. Everything is installed under `~/.local`.
+
+### Linux, from source (if you prefer)
 
 ```bash
 git clone https://github.com/AyhamAbusninah/daily-notebook.git
@@ -22,67 +35,76 @@ cd daily-notebook
 ./install.sh
 ```
 
-Then open **Daily Notebook** from your app launcher (press `Super` and type "notebook"), or run `daily-notebook` in a terminal.
+This needs Python 3 with `venv` (on Debian/Ubuntu: `sudo apt install python3-venv`). It downloads PySide6 (about 100 MB) into a private virtualenv.
 
-If `install.sh` says GTK4 is missing, install it and run the script again:
+## How to use
 
-| Distro | Command |
-|---|---|
-| Fedora | `sudo dnf install python3-gobject gtk4` |
-| Debian / Ubuntu | `sudo apt install python3-gi gir1.2-gtk-4.0` |
-| Arch | `sudo pacman -S python-gobject gtk4` |
-
-No sudo is needed for the app itself. Everything is installed under `~/.local`.
-
-## Run without installing
-
-```bash
-python3 notebook.py
-```
-
-## Keyboard shortcuts
+- **Write normally.** A line is a task only when you make it one.
+- **Make a task:** type `[]` and a space at the start of a line, or press `Ctrl+T`, or click **+ Task**. Select several lines first to convert them all at once.
+- **Tick a task:** click its checkbox, or press `Ctrl+Enter`. Done tasks are struck through.
+- **Enter** on a task starts the next task. **Enter** on an empty task goes back to plain text. **Backspace** right after a checkbox turns it back into plain text.
+- **Go to another day:** the arrows, **Today**, or **History** (`Ctrl+F`): a calendar where days with pages are highlighted, plus a search box that looks through every page.
+- Unfinished tasks from your last page are copied to today's page automatically.
 
 | Keys | Action |
 |---|---|
-| `Ctrl+T` | Make the current line a task, or turn a task back into plain text |
-| `Ctrl+Enter` | Tick / untick the task on the current line |
-| `Enter` (on a task) | Start the next task |
-| `Enter` (on an empty task) | Leave the task list, back to plain text |
+| `[]` + space | Make a task |
+| `Ctrl+T` | Make the line(s) a task, or plain text again |
+| `Ctrl+Enter` | Tick / untick the task |
+| `Ctrl+F` | History: calendar and search |
 | `Alt+Left` / `Alt+Right` | Previous / next day |
 
-You can also click a checkbox, and use the checkbox button in the header bar instead of `Ctrl+T`.
+## Your notes
 
-## Where your notes are
+Each day is one plain text file, `YYYY-MM-DD.md`, in your notes folder:
 
-`~/journal/YYYY-MM-DD.md`, one file per day. Tasks are saved as `- [ ] text` and `- [x] text`; everything else is saved exactly as typed.
+- **Windows / Linux default:** `Documents/Daily Notebook` (or `~/journal` if you already used an older version).
+- Menu **...** > **Open notes folder** shows it. **Change notes folder...** moves the app to another folder (and can copy your pages there).
 
-To keep a history of everything you write:
+Tasks are saved as `- [ ] text` and `- [x] text`; everything else is saved exactly as typed. The app never deletes a page: clearing a page leaves an empty file.
 
-```bash
-cd ~/journal && git init && git add . && git commit -m "journal"
-```
+**Keeping your notes for good:**
 
-## Update
-
-```bash
-cd daily-notebook
-git pull
-./install.sh
-```
+- **Export all pages as one Markdown file** (menu **...**): one readable file with every day in order. Good as a keepsake.
+- **Back up all pages as .zip** (menu **...**).
+- The folder is plain files, so you can also sync it (Syncthing, OneDrive, Dropbox) or put it in git. Close the app before editing the files from another device.
 
 ## Uninstall
 
-```bash
-./uninstall.sh
-```
+- **Windows:** delete the `DailyNotebook` folder.
+- **Linux:** run `./uninstall.sh` from the folder you installed from.
 
-This removes the app only. Your notes in `~/journal` are not touched.
+Your notes are never removed.
 
 ## Troubleshooting
 
-- **The app is not in the launcher.** Log out and back in, or run `update-desktop-database ~/.local/share/applications`.
-- **After an update the old version opens.** The app is single-instance. Run `pkill -f notebook.py` and start it again.
-- **`daily-notebook: command not found`.** Add `~/.local/bin` to your `PATH`, or launch it from the app launcher.
+- **Linux: the app does not start from the tarball and mentions `xcb`.** Install the missing Qt library: Fedora `sudo dnf install xcb-util-cursor`, Debian/Ubuntu `sudo apt install libxcb-cursor0`.
+- **Linux: the app is not in the launcher.** Log out and back in, or run `update-desktop-database ~/.local/share/applications`.
+- **"Daily Notebook is already running."** Only one copy can be open, so two windows never edit the same page.
+- **A page did not save.** The line under the date shows a warning. Check that the notes folder exists and is writable.
+
+## Development
+
+```bash
+pip install PySide6-Essentials pytest
+QT_QPA_PLATFORM=offscreen python -m pytest      # core logic + UI tests, no display needed
+python -m daily_notebook                         # run from source
+```
+
+- `daily_notebook/core.py`: storage, search, export, carry-over (no GUI code).
+- `daily_notebook/editor.py`: the text editor with checkbox lines.
+- `daily_notebook/app.py`: window, History dialog, menu.
+
+### Publishing a release
+
+Pushing a version tag builds the Windows and Linux packages on GitHub and attaches them to a release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The build runs the tests, packages the app with PyInstaller, and runs `--selftest` on the packaged app (on both Windows and Linux) before publishing.
 
 ## License
 

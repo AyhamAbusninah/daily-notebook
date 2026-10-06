@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daily-notebook"
+version = "1.0.0"
+description = "One page per day: free writing with checkbox tasks"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = ["PySide6-Essentials>=6.5"]
+
+[project.scripts]
+daily-notebook = "daily_notebook.app:main"
+
+[tool.setuptools.packages.find]
+include = ["daily_notebook*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

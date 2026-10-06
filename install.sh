@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Installs Daily Notebook for the current user (no sudo needed).
+# Linux installer (per user, no sudo).
+#  - From a release tarball (has a DailyNotebook/ folder next to this script): installs the ready-made app.
+#  - From a git checkout: creates a Python virtualenv and installs the app + PySide6 from PyPI.
 set -euo pipefail
 
 APP_ID="io.github.dailynotebook"
@@ -8,27 +10,38 @@ SHARE="${XDG_DATA_HOME:-$HOME/.local/share}"
 BIN="$HOME/.local/bin"
 DEST="$SHARE/daily-notebook"
 
-if ! python3 -c "import gi; gi.require_version('Gtk','4.0'); from gi.repository import Gtk" 2>/dev/null; then
-  echo "GTK4 for Python is missing. Install it first, then run this script again:"
-  echo "  Fedora:        sudo dnf install python3-gobject gtk4"
-  echo "  Debian/Ubuntu: sudo apt install python3-gi gir1.2-gtk-4.0"
-  echo "  Arch:          sudo pacman -S python-gobject gtk4"
-  exit 1
-fi
+# stop a running copy (older versions too) so the new one starts
+pkill -f "daily-notebook/(notebook\.py|venv|app)" 2>/dev/null || true
 
-# The app is single-instance: stop an old running copy so the new version starts.
-pkill -f "daily-notebook/notebook.py" 2>/dev/null || true
-
+rm -rf "$DEST"
 mkdir -p "$DEST" "$BIN" "$SHARE/applications" "$SHARE/icons/hicolor/scalable/apps"
-install -m 755 "$SRC/notebook.py" "$DEST/notebook.py"
-install -m 644 "$SRC/data/$APP_ID.svg" "$SHARE/icons/hicolor/scalable/apps/$APP_ID.svg"
+
+if [ -x "$SRC/DailyNotebook/DailyNotebook" ]; then
+  cp -r "$SRC/DailyNotebook" "$DEST/app"
+  TARGET="$DEST/app/DailyNotebook"
+else
+  if ! command -v python3 >/dev/null; then
+    echo "python3 not found. Install it first (Fedora: sudo dnf install python3)."; exit 1
+  fi
+  if ! python3 -m venv "$DEST/venv" 2>/dev/null; then
+    echo "Could not create a Python virtualenv."
+    echo "  Debian/Ubuntu: sudo apt install python3-venv"
+    echo "  Fedora:        sudo dnf install python3"
+    exit 1
+  fi
+  echo "Installing (downloads PySide6, about 100 MB)..."
+  "$DEST/venv/bin/pip" install --quiet --upgrade pip
+  "$DEST/venv/bin/pip" install --quiet "$SRC"
+  TARGET="$DEST/venv/bin/daily-notebook"
+fi
 
 cat > "$BIN/daily-notebook" <<LAUNCHER
 #!/usr/bin/env bash
-exec python3 "$DEST/notebook.py" "\$@"
+exec "$TARGET" "\$@"
 LAUNCHER
 chmod 755 "$BIN/daily-notebook"
 
+install -m 644 "$SRC/data/$APP_ID.svg" "$SHARE/icons/hicolor/scalable/apps/$APP_ID.svg"
 cat > "$SHARE/applications/$APP_ID.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application
@@ -47,5 +60,5 @@ gtk-update-icon-cache -q -t "$SHARE/icons/hicolor" 2>/dev/null || true
 echo "Installed. Open 'Daily Notebook' from your app launcher (press Super and type 'notebook')."
 case ":$PATH:" in
   *":$BIN:"*) echo "Or run it from a terminal: daily-notebook" ;;
-  *) echo "To run it from a terminal, add $BIN to your PATH, or run: $BIN/daily-notebook" ;;
+  *) echo "To run it from a terminal: $BIN/daily-notebook" ;;
 esac
