@@ -18,14 +18,24 @@ from pathlib import Path
 
 GLYPH_OPEN = "\u2610"
 GLYPH_DONE = "\u2611"
-TODO_RE = re.compile(r"^- \[( |x)\]( |$)")
+TODO_RE = re.compile(r"^(\s*)- \[( |x)\]( |$)")  # group 1: indent (subtask), group 2: ' ' or 'x'
+EDITOR_TASK_RE = re.compile("^( {4})?([\u2610\u2611])( |$)")
+INDENT = "    "  # a subtask is indented by this much in the editor (two spaces in the file)
 OLD_SEP = "\n---\n"  # separator used by a very early version of the app
 FILE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.md$")
 
 
 # ---------- text conversion ----------
+def task_info(line: str):
+    """(depth, glyph, prefix_len) of a task line in the editor, or None. depth: 0 task, 1 subtask."""
+    m = EDITOR_TASK_RE.match(line)
+    if not m:
+        return None
+    return (1 if m.group(1) else 0), m.group(2), m.end()
+
+
 def is_task_line(line: str) -> bool:
-    return line[:1] in (GLYPH_OPEN, GLYPH_DONE) and (len(line) == 1 or line[1] == " ")
+    return EDITOR_TASK_RE.match(line) is not None
 
 
 def to_editor_text(file_text: str) -> str:
@@ -33,8 +43,8 @@ def to_editor_text(file_text: str) -> str:
     for line in file_text.split("\n"):
         m = TODO_RE.match(line)
         if m:
-            glyph = GLYPH_DONE if m.group(1) == "x" else GLYPH_OPEN
-            out.append(glyph + " " + line[m.end():])
+            glyph = GLYPH_DONE if m.group(2) == "x" else GLYPH_OPEN
+            out.append((INDENT if m.group(1) else "") + glyph + " " + line[m.end():])
         else:
             out.append(line)
     return "\n".join(out)
@@ -43,9 +53,10 @@ def to_editor_text(file_text: str) -> str:
 def to_file_text(editor_text: str) -> str:
     out = []
     for line in editor_text.replace("\u2028", "\n").split("\n"):
-        if is_task_line(line):
-            mark = "x" if line[0] == GLYPH_DONE else " "
-            out.append("- [%s] %s" % (mark, line[2:]))
+        m = EDITOR_TASK_RE.match(line)
+        if m:
+            mark = "x" if m.group(2) == GLYPH_DONE else " "
+            out.append("%s- [%s] %s" % ("  " if m.group(1) else "", mark, line[m.end():]))
         else:
             out.append(line)
     return "\n".join(out)
@@ -61,14 +72,17 @@ def migrate(text: str) -> str:
 
 
 def count_tasks(editor_text: str) -> tuple[int, int]:
-    """(open, done) task counts of an editor text."""
+    """(open, done) counts of main tasks; subtasks are not counted separately."""
     open_n = done_n = 0
+    prev_is_task = False
     for line in editor_text.split("\n"):
-        if is_task_line(line):
-            if line[0] == GLYPH_DONE:
+        info = task_info(line)
+        if info and (info[0] == 0 or not prev_is_task):
+            if info[1] == GLYPH_DONE:
                 done_n += 1
             else:
                 open_n += 1
+        prev_is_task = info is not None
     return open_n, done_n
 
 
@@ -168,14 +182,27 @@ class Journal:
         return [d for d, p in self._files() if self._read_path(p).strip()]
 
     def open_tasks_before(self, day: dt.date) -> str:
-        """Unfinished tasks of the most recent earlier page, as file text (for carry-over)."""
+        """Unfinished tasks of the most recent earlier page, as file text (for carry-over).
+
+        An open task keeps its open subtasks; done subtasks are dropped."""
         for d, p in reversed([x for x in self._files() if x[0] < day]):
             lines = self._read_path(p).splitlines()
             tasks = []
+            parent_open = None  # None: no parent above, True/False: parent is open/done
             for l in lines:
                 m = TODO_RE.match(l)
-                if m and m.group(1) == " ":
-                    tasks.append(l)
+                if not m:
+                    parent_open = None
+                    continue
+                done = m.group(2) == "x"
+                text = l[m.end():]
+                if not m.group(1):
+                    parent_open = not done
+                    if not done:
+                        tasks.append("- [ ] " + text)
+                elif not done:
+                    # a subtask of an open parent stays a subtask; anything else is kept as a main task
+                    tasks.append(("  " if parent_open else "") + "- [ ] " + text)
             if tasks:
                 return "\n".join(tasks) + "\n\n"
             if any(l.strip() for l in lines):

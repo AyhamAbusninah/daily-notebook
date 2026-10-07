@@ -44,6 +44,7 @@ This needs Python 3 with `venv` (on Debian/Ubuntu: `sudo apt install python3-ven
 - **Tick a task:** click its checkbox, or press `Ctrl+Enter`. Done tasks are struck through.
 - **Enter** on a task starts the next task. **Enter** on an empty task goes back to plain text. **Backspace** right after a checkbox turns it back into plain text.
 - **Go to another day:** the arrows, **Today**, or **History** (`Ctrl+F`): a calendar where days with pages are highlighted, plus a search box that looks through every page.
+- **Subtasks:** press `Tab` on a task to make it a subtask of the task above, and `Shift+Tab` to bring it back. `Enter` on a subtask adds another subtask; `Enter` on an empty subtask goes back to a main task. A task with subtasks is marked done automatically when all its subtasks are done, and reopens if you add or untick one. Ticking the main task ticks all its subtasks. (One level of subtasks.)
 - Unfinished tasks from your last page are copied to today's page automatically.
 
 | Keys | Action |
@@ -52,6 +53,7 @@ This needs Python 3 with `venv` (on Debian/Ubuntu: `sudo apt install python3-ven
 | `Ctrl+T` | Make the line(s) a task, or plain text again |
 | `Ctrl+Enter` | Tick / untick the task |
 | `Ctrl+F` | History: calendar and search |
+| `Tab` / `Shift+Tab` | Make a task a subtask / back to a main task |
 | `Alt+Left` / `Alt+Right` | Previous / next day |
 
 ## Your notes

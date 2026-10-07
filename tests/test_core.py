@@ -78,3 +78,27 @@ def test_default_dir_prefers_existing_journal(tmp_path, monkeypatch):
     (tmp_path / "journal").mkdir()
     (tmp_path / "journal" / "2026-01-01.md").write_text("x")
     assert core.default_notes_dir() == tmp_path / "journal"
+
+
+def test_subtask_file_roundtrip_and_counts():
+    f = "- [ ] a\n  - [x] b\n  - [ ] c\n- [x] d"
+    e = core.to_editor_text(f)
+    assert e == "\u2610 a\n    \u2611 b\n    \u2610 c\n\u2611 d"
+    assert core.to_file_text(e) == f
+    assert core.count_tasks(e) == (1, 1)          # subtasks are not counted separately
+    assert core.task_info("    \u2610 c") == (1, core.GLYPH_OPEN, 6)
+    assert core.task_info("\u2610 c") == (0, core.GLYPH_OPEN, 2)
+    assert core.task_info("  \u2610 c") is None  # indent must be exactly one level
+
+
+def test_carry_over_keeps_open_subtasks_together(tmp_path):
+    j = core.Journal(tmp_path)
+    j.write(D(2026, 1, 1),
+            "- [ ] trip\n  - [x] tickets\n  - [ ] hotel\n- [x] finished\n  - [x] sub\n- [ ] solo\nnote")
+    assert j.open_tasks_before(D(2026, 1, 2)) == "- [ ] trip\n  - [ ] hotel\n- [ ] solo\n\n"
+
+
+def test_orphan_subtask_is_carried_as_main_task(tmp_path):
+    j = core.Journal(tmp_path)
+    j.write(D(2026, 1, 1), "text\n  - [ ] lonely")
+    assert j.open_tasks_before(D(2026, 1, 2)) == "- [ ] lonely\n\n"
