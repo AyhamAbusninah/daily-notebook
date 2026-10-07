@@ -99,11 +99,11 @@ python -m daily_notebook                         # run from source
 
 ### Publishing a release
 
-Pushing a version tag builds the Windows and Linux packages on GitHub and attaches them to a release:
+Pushing a version tag (the current release is **v1.1.0**) builds the Windows and Linux packages on GitHub and attaches them to a release:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 The build runs the tests, packages the app with PyInstaller, and runs `--selftest` on the packaged app (on both Windows and Linux) before publishing.
